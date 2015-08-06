@@ -20,7 +20,7 @@ class Document(object):
         return "<Document %s>" % (self.id)
 
     def _grams(self, feature):
-        return set(zip(*[feature.split(' ')[i:] for i in range(self.width)]))
+        return list(map(list, zip(*[re.findall(self.reg, feature)[i:] + [''] * i  for i in range(self.width)])))
 
     def shingles(self):
         shingle_matrix = []
@@ -30,7 +30,7 @@ class Document(object):
                 shingle_matrix.append([])
                 continue
             tokens = self._grams(feature)
-            shingle_matrix.append(list(map(lambda x: Fingerprint(self.id, x), feature)))
+            shingle_matrix.append(list(map(lambda x: Fingerprint(self.id, x), tokens)))
 
         return shingle_matrix
 
@@ -41,7 +41,7 @@ class Fingerprint(object):
         self.id = doc_id
         self.token = token
 
-        self.value = hash(''.join(token)) if token != None else None
+        self.value = hash(''.join(token))
 
     def __repr__(self):
         return "<Fingerprint: %s>" % (self.id)
