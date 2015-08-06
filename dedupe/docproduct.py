@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 import csv, sys
-import MySQLdb
-
-from settings import db_user, db_passwd
+import pymysql
 
 class Docproduct(object):
 
@@ -10,9 +8,9 @@ class Docproduct(object):
         self.limit = limit
 
     def _query(self):
-        db = MySQLdb.connect(host="192.168.2.131",
-                           user=db_user,
-                           passwd=db_passwd,
+        db = pymysql.connect(host="192.168.2.131",
+                           user="nliolios",
+                           passwd="NL15!ntern",
                            db='bifrost')
 
         limit_clause = ';'

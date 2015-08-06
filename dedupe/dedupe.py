@@ -4,47 +4,46 @@ import itertools, collections
 from docproduct import Docproduct
 from document import Document
 
-threshhold = .45
+threshhold = .2
+feature_weights = [2, 1]
+number_of_features = len(feature_weights)
 
-documents = []
-
+documents = {}
 query = Docproduct(limit=1000)._query()
-
 for row in query:
-    print(row)
+    doc_id = id(row)
+    documents[doc_id] = Document(doc_id, row)
 
-# for row in query:
-#     document = Document(' '.join(str(i) for i in row))
-#     documents.append(document)
+# Documents of features of fingerprints
+fingerprints = [document.shingles() for document in documents.values()]
 
-# fingerprints = sorted(list(itertools.chain(*[i.features() for i in documents])), key=lambda x: x.value)
+assert all([number_of_features == len(fingerprint) for fingerprint in fingerprints])
 
-# grouped = []
+features = [[] for i in range(number_of_features)]
+for document in fingerprints:
+    for i, feature in enumerate(document):
+        for fingerprints in feature:
+            features[i].append(fingerprints)
 
-# for k, g in itertools.groupby(fingerprints, lambda x: x.value):
-#     g = list(g)
-#     if len(g) > 1:
-#         grouped.append(g)
+grouped = [[] for i in range(len(features))]
+for i, feature in enumerate(features):
+    for key, group in itertools.groupby(feature, lambda x: x.value):
+        group = list(group)
+        if len(group) > 1:
+            grouped[i].append(group)
 
-# similarity = collections.defaultdict(int)
+similarity = collections.defaultdict(lambda:1)
+for i, feature in enumerate(grouped):
+    feature_similarity = collections.defaultdict(int)
+    for group in feature:
+        ids = [fingerprint.id for fingerprint in group]
+        id_pairs = list(itertools.permutations(ids, 2))
+        for id_pair in id_pairs:
+            feature_similarity[id_pair] += feature_weights[i]
+    for key, value in feature_similarity.items():
+        similarity[key] *= value
 
-# for group in grouped:
-#     ids = map(lambda x: x.id, group)
-#     id_pairs = map(tuple, itertools.permutations(ids, 2))
+print(similarity)
 
-#     for pair in id_pairs:
-#         similarity[pair] += 1
 
-# duplicates = []
-
-# for k, v in similarity.iteritems():
-#     pair = map(lambda x: [doc for doc in documents if doc.id == x][0], k)
-#     length = sum(map(lambda x: len(x._sketch()), pair))
-#     if v / length >= threshhold:
-#         duplicates.append(pair)
-
-# for a, b in duplicates:
-#     print a.value
-#     print b.value
-#     print "\n\n"
 

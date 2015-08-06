@@ -3,14 +3,14 @@ import re, pdb
 
 class Document(object):
 
-    def __init__(self, *features, width=2, reg=r'[\w\u4e00-\u9fcc]+'):
+    def __init__(self, doc_id, features, width=2, reg=r'[\w\u4e00-\u9fcc]+'):
         """
         `width` designates the size of feature ngrams
 
         `reg` is used to tokenize the string
         """
 
-        self.id = id(self)
+        self.id = doc_id
         self.features = features
 
         self.width = width
@@ -19,26 +19,20 @@ class Document(object):
     def __repr__(self):
         return "<Document %s>" % (self.id)
 
-    def _grams(self, tokens):
-        return set(zip(*[tokens[i:] for i in range(self.width)]))
-
-    def _sketch(self):
-        tokens_list = [re.findall(self.reg, feature.lower()) for feature in self.features]
-        sketch = [self._grams(tokens) for tokens in tokens_list]
-        return sketch
+    def _grams(self, feature):
+        return set(zip(*[feature.split(' ')[i:] for i in range(self.width)]))
 
     def shingles(self):
-        shingles_list = []
-        sketch = self._sketch()
+        shingle_matrix = []
+        
+        for feature in self.features:
+            if feature == None:
+                shingle_matrix.append([])
+                continue
+            tokens = self._grams(feature)
+            shingle_matrix.append(list(map(lambda x: Fingerprint(self.id, x), feature)))
 
-        for tokens in sketch:
-            shingles = set()
-            while tokens:
-                shingles.add(Fingerprint(self.id, tokens.pop()))
-                
-            shingles_list.append(shingles)
-
-        return shingles_list
+        return shingle_matrix
 
 
 class Fingerprint(object):
@@ -47,7 +41,7 @@ class Fingerprint(object):
         self.id = doc_id
         self.token = token
 
-        self.value = hash(''.join(token))
+        self.value = hash(''.join(token)) if token != None else None
 
     def __repr__(self):
         return "<Fingerprint: %s>" % (self.id)
