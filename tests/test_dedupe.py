@@ -8,40 +8,67 @@ Tests for `dedupe` module.
 
 import unittest
 
+from dedupe import Dedupe, Document, Fingerprint
+
 class TestDedupe(unittest.TestCase):
 
-    def setUp(self):
-        pass
-
     def test_fingerprint(self):
-        pass
-
-    def tearDown(self):
         pass
 
 
 class TestDocument(unittest.TestCase):
 
-    def setUp(self):
-        pass
+    def test_tokenize(self):
 
-    def test_something(self):
-        pass
+        def tokenizer(string, reg):
+            return Document(1, '', reg=reg)._tokenize(string)
 
-    def tearDown(self):
-        pass
+        self.assertTrue(tokenizer('', r'.') == '')
+        self.assertTrue(tokenizer('the', r'.') == ['t', 'h', 'e'])
+        self.assertTrue(tokenizer('the quick fox', r'\w+') == ['the', 'quick', 'fox'])
+
+        self.assertFalse(tokenizer('a1a', r'[a-z]') == ['a', '1', 'a'])
+        self.assertFalse(tokenizer('The #$#@ fox', r'[A-Za-z]+') == ['The', '#$#@', 'fox'])
 
 
-class TestDocument(unittest.TestCase):
+    def test_grams(self):
 
-    def setUp(self):
-        pass
+        def ngrams(string, reg, width):
+            return Document(1, '', reg=reg, width=width)._grams(string)
+
+        self.assertTrue(ngrams('', r'.', 1) == [['']])
+        self.assertTrue(ngrams('', r'.', 3) == [['', '', '']])
+
+        self.assertTrue(ngrams('a', r'.', 3) == [['a', '', '']])
+        self.assertTrue(ngrams('a b', r'[a-z]', 3) == [['a', 'b', ''], ['b', '', '']])
+
+        self.assertTrue(ngrams('a', r'.', 1) == [['a']])
+        self.assertTrue(ngrams('The quick fox jumped', r'[A-Za-z]+', 3) == [['The', 'quick', 'fox'], ['quick', 'fox', 'jumped']])
+
+
+    def test_shingles(self):
+
+        def shingles(string):
+            return Document(1, string).shingles()
+
+        self.assertTrue(shingles('') == [])
+
+        self.assertFalse(shingles('a b') == shingles('a b'))
+        self.assertFalse(shingles('a b') == shingles('b a'))
+
+class TestFingerprint(unittest.TestCase):
 
     def test_fingerprint(self):
-        print(Fingerprint('').value)
+        token = "This is a document token"
+        self.assertTrue(Fingerprint(1, token).value != Fingerprint(1, token).token == token)
 
-    def tearDown(self):
-        pass
+        self.assertTrue(Fingerprint(123, "Same token => same hash").value == Fingerprint(123, "Same token => same hash").value)
+        self.assertTrue(Fingerprint(321, "Different ids don't affect value").value == Fingerprint(123, "Different ids don't affect value").value)
+        self.assertTrue(Fingerprint(123, ("Hashable", "data", "types", "are", "allowed")).value == Fingerprint(123, ("Hashable", "data", "types", "are", "allowed")).value)
+
+        self.assertFalse(Fingerprint(123, "Different token").value == Fingerprint(123, "Different hash").value)
+        self.assertFalse(Fingerprint(123, "1").value == Fingerprint(321, 1).value)
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -3,6 +3,7 @@ import re, itertools, collections
 
 class Dedupe(object):
 
+
     def __init__(self, ids, featureset, threshhold, feature_weights=None):
         """
         `ids` is an N sized vector of unique ids for featureset
@@ -58,6 +59,7 @@ class Dedupe(object):
         return features, number_of_features
 
 
+
     # Group fingerprints by hash value.
     def _groups(self, features):
         groups = [[] for i in range(len(features))]
@@ -68,6 +70,7 @@ class Dedupe(object):
                     groups[i].append(group)
 
         return groups
+
 
 
     # Converts groups into a similarity dictionary.
@@ -87,6 +90,7 @@ class Dedupe(object):
         return similarity
 
 
+
     def _jaccard(self, similarity):
         # Weighted jaccard coefficient must exceed threshold for a similar pair to be considered duplicates
         duplicates = []
@@ -104,11 +108,13 @@ class Dedupe(object):
         return duplicates
 
 
+
     def duplicates(self):
         return self._jaccard(self._similarity(self._groups(self.features)))
 
 
 class Document(object):
+
 
     def __init__(self, doc_id, features, width=2, reg=r'[\w\u4e00-\u9fcc]+'):
         """
@@ -122,11 +128,29 @@ class Document(object):
         self.width = width
         self.reg = reg
 
+
     def __repr__(self):
         return "<Document %s>" % (self.id)
 
+
+    def _tokenize(self, feature):
+        if not feature:
+            return ''
+        else:
+            return re.findall(self.reg, feature)
+
+
     def _grams(self, feature):
-        return list(map(list, zip(*[re.findall(self.reg, feature)[i:] + [''] * i  for i in range(self.width)])))
+
+        tokens = self._tokenize(feature)
+
+        if len(tokens) == 0:
+            return [[''] * self.width]
+        elif len(tokens) < self.width:
+            return list(map(list, zip(*[tokens[i:] + [''] * i for i in range(self.width)])))
+        else:
+            return list(map(list, zip(*[tokens[i:] for i in range(self.width)])))
+
 
     def shingles(self):
         shingle_matrix = []
@@ -136,18 +160,24 @@ class Document(object):
                 shingle_matrix.append([])
                 continue
             tokens = self._grams(feature)
-            shingle_matrix.append(list(map(lambda x: Fingerprint(self.id, x), tokens)))
+            shingle_matrix.append(list(map(lambda x: Fingerprint(self.id, tuple(x)), tokens)))
 
         return shingle_matrix
 
 
+
 class Fingerprint(object):
+
 
     def __init__(self, doc_id, token):
         self.id = doc_id
-        self.token = token
 
-        self.value = hash(''.join(token))
+        self.token = token
+        if self.token == False:
+            self.token = None
+
+        self.value = hash(token)
+
 
     def __repr__(self):
         return "<Fingerprint: %s>" % (self.id)
