@@ -9,7 +9,6 @@ class Document(object):
 
         `reg` is used to tokenize the string
         """
-
         self.id = doc_id
         self.features = features
 
