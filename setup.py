@@ -11,11 +11,8 @@ except ImportError:
 with open('README.rst') as readme_file:
     readme = readme_file.read()
 
-with open('HISTORY.rst') as history_file:
-    history = history_file.read().replace('.. :changelog:', '')
-
 requirements = [
-    # TODO: put package requirements here
+    "PyMySQL"
 ]
 
 test_requirements = [
@@ -26,15 +23,15 @@ setup(
     name='dedupe',
     version='0.1.0',
     description="Actio corporation's deduping algorithm",
-    long_description=readme + '\n\n' + history,
     author="Nik Liolios",
     author_email='nliolios@exeter.edu',
     url='https://github.com/nliolios24/dedupe',
     packages=[
         'dedupe',
     ],
-    package_dir={'dedupe':
-                 'dedupe'},
+    package_dir={
+        'dedupe': 'src',
+    },
     include_package_data=True,
     install_requires=requirements,
     license="BSD",

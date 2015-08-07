@@ -1,6 +1,4 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
 """
 test_dedupe
 ----------------------------------
@@ -10,10 +8,19 @@ Tests for `dedupe` module.
 
 import unittest
 
-from dedupe import dedupe
-
-
 class TestDedupe(unittest.TestCase):
+
+    def setUp(self):
+        pass
+
+    def test_fingerprint(self):
+        pass
+
+    def tearDown(self):
+        pass
+
+
+class TestDocument(unittest.TestCase):
 
     def setUp(self):
         pass
@@ -24,5 +31,19 @@ class TestDedupe(unittest.TestCase):
     def tearDown(self):
         pass
 
+
+class TestDocument(unittest.TestCase):
+
+    def setUp(self):
+        pass
+
+    def test_fingerprint(self):
+        print(Fingerprint('').value)
+
+    def tearDown(self):
+        pass
+
 if __name__ == '__main__':
     unittest.main()
+
+
