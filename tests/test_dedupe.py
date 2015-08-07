@@ -12,8 +12,18 @@ from dedupe import Dedupe, Document, Fingerprint
 
 class TestDedupe(unittest.TestCase):
 
-    def test_fingerprint(self):
-        pass
+    def test_dedupe(self):
+        ids = ['1', '2', '3', '4', '5']
+        featureset = [
+            ['123', 'abc', 'xyz'],
+            ['121', 'def', 'xyz'],
+            ['321', 'cba', 'zyx'],
+            ['999', 'mmm', 'jjj'],
+            ['123', 'abc', 'xyz'],
+        ]
+
+
+        print(Dedupe(ids, featureset, 1).duplicates())
 
 
 class TestDocument(unittest.TestCase):
@@ -21,7 +31,7 @@ class TestDocument(unittest.TestCase):
     def test_tokenize(self):
 
         def tokenizer(string, reg):
-            return Document(1, '', reg=reg)._tokenize(string)
+            return Document(1, '', 2, reg)._tokenize(string)
 
         self.assertTrue(tokenizer('', r'.') == '')
         self.assertTrue(tokenizer('the', r'.') == ['t', 'h', 'e'])
@@ -34,7 +44,7 @@ class TestDocument(unittest.TestCase):
     def test_grams(self):
 
         def ngrams(string, reg, width):
-            return Document(1, '', reg=reg, width=width)._grams(string)
+            return Document(1, '', width, reg)._grams(string)
 
         self.assertTrue(ngrams('', r'.', 1) == [['']])
         self.assertTrue(ngrams('', r'.', 3) == [['', '', '']])
@@ -49,12 +59,15 @@ class TestDocument(unittest.TestCase):
     def test_shingles(self):
 
         def shingles(string):
-            return Document(1, string).shingles()
+            return Document(1, string, 2, r'\w+').shingles()
 
         self.assertTrue(shingles('') == [])
 
         self.assertFalse(shingles('a b') == shingles('a b'))
         self.assertFalse(shingles('a b') == shingles('b a'))
+
+
+
 
 class TestFingerprint(unittest.TestCase):
 

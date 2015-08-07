@@ -4,7 +4,7 @@ import re, itertools, collections
 class Dedupe(object):
 
 
-    def __init__(self, ids, featureset, threshhold, feature_weights=None):
+    def __init__(self, ids, featureset, threshhold, feature_weights=None, width=2, reg=r'[\w\u4e00-\u9fcc]+'):
         """
         `ids` is an N sized vector of unique ids for featureset
 
@@ -15,13 +15,22 @@ class Dedupe(object):
             threshhold of 0 => document A's shingles and document B's shingles must be disjoint sets
 
         `feature_weights` is a M sized vector of weights
+
+        `width` designates the size of feature ngrams
+
+        `reg` is used to tokenize the string
         """
+
         assert len(ids) == len(featureset)
         assert all([len(features) for features in featureset])
+        assert len(featureset[0]) > 1
 
         self.ids = ids
         self.featureset = featureset
-        self.features, self.number_of_features = _features(featureset)
+        self.width = width
+        self.reg = reg
+
+        self.features, self.number_of_features = self._features()
 
         if threshhold <= 1 and threshhold >=0:
             self.threshhold = threshhold
@@ -34,17 +43,16 @@ class Dedupe(object):
 
 
     # Converts an MxN featureset into M features of fingerprints of n.
-    def _features(self, featureset):
-        assert len(row) > 1
+    def _features(self):
 
         # Construct dictionary of documents for easy lookup.
-        documents = {}
-        for row in featureset:
-            doc_id = row[0]
-            documents[doc_id] = Document(doc_id, row[:1])
+        self.documents = {}
+        for i, row in enumerate(self.featureset):
+            doc_id = self.ids[i]
+            self.documents[doc_id] = Document(doc_id, row, self.width, self.reg)
 
         # [[[]]] of fingerprints.  Documents > features > fingerprints
-        fingerprints = [document.shingles() for document in documents.values()]
+        fingerprints = [document.shingles() for document in self.documents.values()]
 
         # Every feature must be same size
         number_of_features = len(fingerprints[0])
@@ -64,7 +72,7 @@ class Dedupe(object):
     def _groups(self, features):
         groups = [[] for i in range(len(features))]
         for i, feature in enumerate(features):
-            for key, group in itertools.groupby(feature, lambda x: x.value):
+            for key, group in itertools.groupby(sorted(feature, key=lambda x: x.value), lambda x: x.value):
                 group = list(group)
                 if len(group) > 1:
                     groups[i].append(group)
@@ -74,10 +82,10 @@ class Dedupe(object):
 
 
     # Converts groups into a similarity dictionary.
-    def _similarity(self, group):
+    def _similarity(self, groups):
         # Count similar fingerprints between document pairs
         similarity = collections.defaultdict(lambda:0)
-        for i, feature in enumerate(grouped):
+        for i, feature in enumerate(groups):
             for group in feature:
                 ids = [fingerprint.id for fingerprint in group]
                 if len(set(ids)) == 1:
@@ -95,7 +103,7 @@ class Dedupe(object):
         # Weighted jaccard coefficient must exceed threshold for a similar pair to be considered duplicates
         duplicates = []
         for id_pair, similarity in similarity.items():
-            pair = [documents[doc_id] for doc_id in id_pair]
+            pair = [self.documents[doc_id] for doc_id in id_pair]
             pair_lengths = [0, 0]
             for i, document in enumerate(pair):
                 for j, feature in enumerate(document.shingles()):
@@ -110,18 +118,14 @@ class Dedupe(object):
 
 
     def duplicates(self):
-        return self._jaccard(self._similarity(self._groups(self.features)))
+        return self._jaccard(self._similarity(self._groups(self._features()[0])))
 
 
 class Document(object):
 
 
-    def __init__(self, doc_id, features, width=2, reg=r'[\w\u4e00-\u9fcc]+'):
-        """
-        `width` designates the size of feature ngrams
+    def __init__(self, doc_id, features, width, reg):
 
-        `reg` is used to tokenize the string
-        """
         self.id = doc_id
         self.features = features
 
