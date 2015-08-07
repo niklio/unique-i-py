@@ -12,7 +12,7 @@ from dedupe import Dedupe, Document, Fingerprint
 
 class TestDedupe(unittest.TestCase):
 
-    def test_dedupe(self):
+    def test_features(self):
         ids = ['1', '2', '3', '4', '5']
         featureset = [
             ['123', 'abc', 'xyz'],
@@ -22,8 +22,34 @@ class TestDedupe(unittest.TestCase):
             ['123', 'abc', 'xyz'],
         ]
 
+        self.assertTrue(len(Dedupe(ids, featureset)._features()) == 3)
+        self.assertTrue(all([len(feature) == 5 for feature in Dedupe(ids, featureset)._features()]))
 
-        print(Dedupe(ids, featureset, 1).duplicates())
+    def test_groups(self):
+        ids = [1, 2, 3]
+        featureset = [
+            ['cat', 'dog'],
+            ['cat', 'dog'],
+            ['dog', 'cat'],
+        ]
+
+        self.assertTrue(len(Dedupe(ids, featureset)._groups()) == 2)
+        self.assertTrue(len(Dedupe(ids, featureset)._groups()[0]) == 1)
+
+
+    def test_similarity(self):
+        ids = [1, 2, 3]
+        featureset = [
+            ['a b c'],
+            ['a b c'],
+            ['a b d'],
+        ]
+
+        self.assertTrue(Dedupe(ids, featureset).similarity()[(1, 2)] == 2)
+        self.assertTrue(Dedupe(ids, featureset).similarity()[(2, 3)] == 1)
+        self.assertTrue(Dedupe(ids, featureset).similarity()[(1, 3)] == 1)
+
+        self.assertFalse(Dedupe(ids, featureset).similarity()[(2, 1)])
 
 
 class TestDocument(unittest.TestCase):

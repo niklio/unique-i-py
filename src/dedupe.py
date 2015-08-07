@@ -4,7 +4,7 @@ import re, itertools, collections
 class Dedupe(object):
 
 
-    def __init__(self, ids, featureset, threshhold, feature_weights=None, width=2, reg=r'[\w\u4e00-\u9fcc]+'):
+    def __init__(self, ids, featureset, feature_weights=None, width=2, reg=r'[\w\u4e00-\u9fcc]+'):
         """
         `ids` is an N sized vector of unique ids for featureset
 
@@ -23,17 +23,14 @@ class Dedupe(object):
 
         assert len(ids) == len(featureset)
         assert all([len(features) for features in featureset])
-        assert len(featureset[0]) > 1
 
         self.ids = ids
         self.featureset = featureset
         self.width = width
         self.reg = reg
 
-        self.features, self.number_of_features = self._features()
-
-        if threshhold <= 1 and threshhold >=0:
-            self.threshhold = threshhold
+        self.features = self._features()
+        self.number_of_features = len(self._features()[0])
 
         if feature_weights == None:
             self.feature_weights = [1] * self.number_of_features
@@ -64,12 +61,14 @@ class Dedupe(object):
                 for fingerprint in feature:
                     features[i].append(fingerprint)
 
-        return features, number_of_features
+        return features
 
 
 
     # Group fingerprints by hash value.
-    def _groups(self, features):
+    def _groups(self):
+        features = self._features()
+
         groups = [[] for i in range(len(features))]
         for i, feature in enumerate(features):
             for key, group in itertools.groupby(sorted(feature, key=lambda x: x.value), lambda x: x.value):
@@ -80,18 +79,18 @@ class Dedupe(object):
         return groups
 
 
+    def similarity(self):
+        groups = self._groups()
 
-    # Converts groups into a similarity dictionary.
-    def _similarity(self, groups):
         # Count similar fingerprints between document pairs
         similarity = collections.defaultdict(lambda:0)
         for i, feature in enumerate(groups):
             for group in feature:
                 ids = [fingerprint.id for fingerprint in group]
-                if len(set(ids)) == 1:
-                    continue
                 pairs = list(itertools.combinations(ids, 2))
                 for pair in pairs:
+                    if len(set(pair)) == 1:
+                        continue
                     # Weight them
                     similarity[tuple(sorted(pair))] += self.feature_weights[i]
 
@@ -99,26 +98,22 @@ class Dedupe(object):
 
 
 
-    def _jaccard(self, similarity):
+    def weighted_similarity(self):
+        similarity = self.similarity()
+
         # Weighted jaccard coefficient must exceed threshold for a similar pair to be considered duplicates
         duplicates = []
-        for id_pair, similarity in similarity.items():
+        for id_pair, similarity_value in similarity.items():
             pair = [self.documents[doc_id] for doc_id in id_pair]
             pair_lengths = [0, 0]
             for i, document in enumerate(pair):
                 for j, feature in enumerate(document.shingles()):
                     pair_lengths[i] += len(feature) * self.feature_weights[j]
             max_similarity = min(pair_lengths)
-            if similarity / max_similarity >= self.threshhold:
-                duplicates.append(pair)
+            similarity[id_pair] = similarity_value / max_similarity
 
         # Return dupes
-        return duplicates
-
-
-
-    def duplicates(self):
-        return self._jaccard(self._similarity(self._groups(self._features()[0])))
+        return similarity
 
 
 class Document(object):
