@@ -13,10 +13,11 @@ Download
 --------
 
 Download the repository with git:
-::
+```
     $ git clone https://github.com/nliolios24/dedupe
-
+```
 Then create an image and run with Docker
-::
+```
     $ docker build -rm -t dedupe .
     $ docker run dedupe
+```
